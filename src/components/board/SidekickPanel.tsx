@@ -193,30 +193,138 @@ const IconVector = () => (
 // --- Response Types & Mock Data ---
 
 type ResponseType = "agenda" | "progress" | "email" | "risks" | "checklist" | "help" | "generic";
+type FollowUpIntent = "affirm" | "deny" | "modify" | "question" | "new_request";
+
+// Task names for context detection
+const TASK_NAMES = [
+  "send invitations", "invitations",
+  "venues", "venue",
+  "find guest speakers", "speakers", "guest speakers",
+  "create agenda", "agenda",
+  "design event branding", "branding", "design",
+  "build registration page", "registration",
+  "coordinate catering", "catering",
+  "confirm tech setup", "tech setup",
+  "schedule dry run", "dry run"
+];
+
+// Detect follow-up intent from user message
+const detectFollowUpIntent = (input: string): FollowUpIntent => {
+  const lower = input.toLowerCase().trim();
+
+  // Affirmative responses
+  const affirmPatterns = [
+    "yes", "yeah", "yep", "sure", "ok", "okay", "do it", "add it",
+    "sounds good", "perfect", "great", "please", "go ahead", "confirm",
+    "add this", "save it", "apply", "submit", "send it", "approve"
+  ];
+  if (affirmPatterns.some(p => lower.includes(p)) || lower.length < 5) {
+    return "affirm";
+  }
+
+  // Deny/cancel responses
+  const denyPatterns = [
+    "no", "nope", "cancel", "never mind", "not now", "later",
+    "don't", "skip", "ignore", "stop"
+  ];
+  if (denyPatterns.some(p => lower.includes(p))) {
+    return "deny";
+  }
+
+  // Modification requests
+  const modifyPatterns = [
+    "change", "edit", "modify", "adjust", "update", "fix",
+    "make it", "can you", "instead", "different", "more", "less"
+  ];
+  if (modifyPatterns.some(p => lower.includes(p))) {
+    return "modify";
+  }
+
+  // Questions
+  if (lower.includes("?") || lower.startsWith("what") || lower.startsWith("how") ||
+      lower.startsWith("why") || lower.startsWith("when") || lower.startsWith("who")) {
+    return "question";
+  }
+
+  return "new_request";
+};
+
+// Detect if user is asking about a specific task
+const detectTaskContext = (input: string): string | null => {
+  const lower = input.toLowerCase();
+  for (const task of TASK_NAMES) {
+    if (lower.includes(task)) {
+      return task;
+    }
+  }
+  return null;
+};
 
 // Function to detect response type from user input
 const detectResponseType = (input: string): ResponseType => {
   const lowerInput = input.toLowerCase();
 
-  if (lowerInput.includes("summarize") || lowerInput.includes("progress") || lowerInput.includes("status") || lowerInput.includes("update on")) {
+  if (lowerInput.includes("summarize") || lowerInput.includes("progress") || lowerInput.includes("status") || lowerInput.includes("update on") || lowerInput.includes("how are we doing")) {
     return "progress";
   }
-  if (lowerInput.includes("email") || lowerInput.includes("draft") || lowerInput.includes("stakeholder") || lowerInput.includes("write")) {
+  if (lowerInput.includes("email") || lowerInput.includes("draft") || lowerInput.includes("stakeholder") || lowerInput.includes("write") || lowerInput.includes("message")) {
     return "email";
   }
-  if (lowerInput.includes("risk") || lowerInput.includes("at-risk") || lowerInput.includes("deadline") || lowerInput.includes("delayed") || lowerInput.includes("blocked")) {
+  if (lowerInput.includes("risk") || lowerInput.includes("at-risk") || lowerInput.includes("deadline") || lowerInput.includes("delayed") || lowerInput.includes("blocked") || lowerInput.includes("overdue") || lowerInput.includes("late")) {
     return "risks";
   }
-  if (lowerInput.includes("checklist") || lowerInput.includes("list") || lowerInput.includes("steps") || lowerInput.includes("todo") || lowerInput.includes("invitation")) {
+  if (lowerInput.includes("checklist") || lowerInput.includes("list") || lowerInput.includes("steps") || lowerInput.includes("todo") || lowerInput.includes("invitation") || lowerInput.includes("tasks for")) {
     return "checklist";
   }
-  if (lowerInput.includes("agenda") || lowerInput.includes("schedule") || lowerInput.includes("event") || lowerInput.includes("program")) {
+  if (lowerInput.includes("agenda") || lowerInput.includes("schedule") || lowerInput.includes("event") || lowerInput.includes("program") || lowerInput.includes("timeline")) {
     return "agenda";
   }
-  if (lowerInput.includes("help") || lowerInput.includes("what can") || lowerInput.includes("what else")) {
+  if (lowerInput.includes("help") || lowerInput.includes("what can") || lowerInput.includes("what else") || lowerInput.includes("options")) {
     return "help";
   }
   return "generic";
+};
+
+// Smart follow-up suggestions based on last action
+const getSmartSuggestions = (lastAction: ResponseType): string[] => {
+  const suggestions: Record<ResponseType, string[]> = {
+    agenda: [
+      "Draft speaker invitation emails",
+      "Create a timeline for setup",
+      "Add session descriptions"
+    ],
+    progress: [
+      "Send this summary to the team",
+      "Show me at-risk items",
+      "Create action items from blockers"
+    ],
+    email: [
+      "Send it now",
+      "Schedule for tomorrow 9am",
+      "Add more recipients"
+    ],
+    risks: [
+      "Extend deadlines for at-risk items",
+      "Reassign blocked tasks",
+      "Create escalation plan"
+    ],
+    checklist: [
+      "Assign owners to each item",
+      "Set due dates",
+      "Create subtasks"
+    ],
+    help: [
+      "Show me the board status",
+      "What needs attention?",
+      "Draft an update email"
+    ],
+    generic: [
+      "Tell me more",
+      "Create a task for this",
+      "Add to board notes"
+    ]
+  };
+  return suggestions[lastAction] || suggestions.generic;
 };
 
 // Follow-up messages based on response type
@@ -772,6 +880,8 @@ export const SidekickPanel = ({
   const [userMessage1, setUserMessage1] = useState("");
   const [userMessage2, setUserMessage2] = useState("");
   const [responseType, setResponseType] = useState<ResponseType>("agenda");
+  const [conversationHistory, setConversationHistory] = useState<Array<{role: 'user' | 'ai', content: string, type?: ResponseType}>>([]);
+  const [lastIntent, setLastIntent] = useState<FollowUpIntent>("new_request");
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -780,7 +890,7 @@ export const SidekickPanel = ({
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [chatState, userMessage1, userMessage2]);
+  }, [chatState, userMessage1, userMessage2, conversationHistory]);
 
   // Transitions
   useEffect(() => {
@@ -791,6 +901,11 @@ export const SidekickPanel = ({
       timer = setTimeout(() => {
         setChatState("update_success");
         onAiAction?.(responseType);
+        // Add to conversation history
+        setConversationHistory(prev => [
+          ...prev,
+          { role: 'ai', content: 'Action completed', type: responseType }
+        ]);
       }, 1500);
     }
     return () => clearTimeout(timer);
@@ -799,30 +914,90 @@ export const SidekickPanel = ({
   const handleSend = () => {
     if (!inputValue.trim()) return;
 
+    const intent = detectFollowUpIntent(inputValue);
+    const taskContext = detectTaskContext(inputValue);
+    setLastIntent(intent);
+
+    // Add user message to history
+    setConversationHistory(prev => [...prev, { role: 'user', content: inputValue }]);
+
     if (chatState === "idle") {
       setUserMessage1(inputValue);
-      setResponseType(detectResponseType(inputValue));
+      // Check if asking about specific task
+      if (taskContext) {
+        // Smart task-specific response
+        if (taskContext.includes("invitation")) setResponseType("checklist");
+        else if (taskContext.includes("agenda")) setResponseType("agenda");
+        else if (taskContext.includes("speaker")) setResponseType("risks");
+        else setResponseType(detectResponseType(inputValue));
+      } else {
+        setResponseType(detectResponseType(inputValue));
+      }
       setChatState("thinking");
     } else if (chatState === "result") {
       setUserMessage2(inputValue);
-      setChatState("thinking_update");
+      // Smart response based on intent
+      if (intent === "deny") {
+        // User said no - acknowledge and stay in result state
+        setUserMessage2("No problem! Let me know if you need anything else.");
+        setChatState("update_success");
+      } else if (intent === "modify") {
+        // User wants to modify - acknowledge modification
+        setUserMessage2(inputValue);
+        setChatState("thinking_update");
+      } else {
+        // Affirmative or new request - proceed with action
+        setChatState("thinking_update");
+      }
     } else if (chatState === "update_success") {
-      // Continue conversation - start new round
-      setUserMessage1(inputValue);
-      setUserMessage2("");
-      setResponseType(detectResponseType(inputValue));
-      setChatState("thinking");
+      // Continue conversation - detect if new topic or follow-up
+      if (intent === "new_request" || intent === "question") {
+        // New topic - start fresh
+        setUserMessage1(inputValue);
+        setUserMessage2("");
+        setResponseType(detectResponseType(inputValue));
+        setChatState("thinking");
+      } else if (intent === "affirm") {
+        // Follow-up affirmation - suggest next actions based on last type
+        const smartSuggestions = getSmartSuggestions(responseType);
+        setUserMessage1(smartSuggestions[0] || inputValue);
+        setUserMessage2("");
+        setResponseType(detectResponseType(smartSuggestions[0] || inputValue));
+        setChatState("thinking");
+      } else {
+        // Default - treat as new request
+        setUserMessage1(inputValue);
+        setUserMessage2("");
+        setResponseType(detectResponseType(inputValue));
+        setChatState("thinking");
+      }
     }
     setInputValue("");
   };
 
-  const suggestions = [
-    { id: 1, text: "Summarize this week's progress across all tasks", icon: <IconAiEditAi /> },
-    { id: 2, text: "Draft a stakeholder update email for this board", icon: <IconPlatformWriteWithAi /> },
-    { id: 3, text: "Identify at-risk items that may miss deadlines", icon: <IconPlatformShuffle /> },
-    { id: 4, text: "Generate a checklist for the Send invitations task", icon: <IconAiBulletsAi /> },
-    { id: 5, text: "What else can AI Sidekick help with?", icon: <IconBasicAdd /> },
-  ];
+  // Dynamic suggestions based on conversation state
+  const getSuggestions = () => {
+    if (chatState === "update_success" && conversationHistory.length > 0) {
+      // Show smart follow-up suggestions
+      const smartSugs = getSmartSuggestions(responseType);
+      return [
+        { id: 1, text: smartSugs[0], icon: <IconAiEditAi /> },
+        { id: 2, text: smartSugs[1], icon: <IconPlatformWriteWithAi /> },
+        { id: 3, text: smartSugs[2], icon: <IconPlatformShuffle /> },
+        { id: 4, text: "What else can you help with?", icon: <IconBasicAdd /> },
+      ];
+    }
+    // Default suggestions
+    return [
+      { id: 1, text: "Summarize this week's progress across all tasks", icon: <IconAiEditAi /> },
+      { id: 2, text: "Draft a stakeholder update email for this board", icon: <IconPlatformWriteWithAi /> },
+      { id: 3, text: "Identify at-risk items that may miss deadlines", icon: <IconPlatformShuffle /> },
+      { id: 4, text: "Generate a checklist for the Send invitations task", icon: <IconAiBulletsAi /> },
+      { id: 5, text: "What else can AI Sidekick help with?", icon: <IconBasicAdd /> },
+    ];
+  };
+
+  const suggestions = getSuggestions();
 
   return (
     <AnimatePresence>
