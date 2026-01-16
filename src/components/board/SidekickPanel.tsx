@@ -327,6 +327,48 @@ const getSmartSuggestions = (lastAction: ResponseType): string[] => {
   return suggestions[lastAction] || suggestions.generic;
 };
 
+// Get action button configuration based on response type
+const getActionConfig = (type: ResponseType): { buttonText: string; targetTask: string; description: string } => {
+  const config: Record<ResponseType, { buttonText: string; targetTask: string; description: string }> = {
+    agenda: {
+      buttonText: "Add to Task",
+      targetTask: "Create agenda",
+      description: "This will add the agenda to the task and update its status"
+    },
+    progress: {
+      buttonText: "Post Summary",
+      targetTask: "Board Updates",
+      description: "This will post the summary as a board update"
+    },
+    email: {
+      buttonText: "Save Draft",
+      targetTask: "Email Drafts",
+      description: "This will save the email draft for review"
+    },
+    risks: {
+      buttonText: "Flag Items",
+      targetTask: "Find guest speakers",
+      description: "This will flag at-risk items and notify owners"
+    },
+    checklist: {
+      buttonText: "Add Checklist",
+      targetTask: "Send invitations",
+      description: "This will add the checklist to the task"
+    },
+    help: {
+      buttonText: "Got it",
+      targetTask: "",
+      description: ""
+    },
+    generic: {
+      buttonText: "Apply",
+      targetTask: "Board",
+      description: "This will apply the suggested action"
+    },
+  };
+  return config[type];
+};
+
 // Follow-up messages based on response type
 const getFollowUpMessage = (type: ResponseType): string => {
   const messages: Record<ResponseType, string> = {
@@ -594,6 +636,54 @@ const FeedbackButtons = () => (
     </button>
   </div>
 );
+
+// Action buttons for the result state
+const ActionButtons = ({
+  type,
+  onAction,
+  onSkip
+}: {
+  type: ResponseType;
+  onAction: () => void;
+  onSkip: () => void;
+}) => {
+  const config = getActionConfig(type);
+
+  // Help type doesn't need action buttons
+  if (type === "help") {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col gap-3 mt-2">
+      {config.targetTask && (
+        <p className="text-[12px] text-[#676879] flex items-center gap-1">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M6 1v10M1 6h10" stroke="#676879" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+          Will update: <span className="font-semibold text-[#323338]">{config.targetTask}</span>
+        </p>
+      )}
+      <div className="flex gap-2">
+        <button
+          onClick={onAction}
+          className="flex-1 h-[36px] bg-[#0073ea] hover:bg-[#0060c2] text-white text-[14px] font-medium rounded-[8px] transition-colors flex items-center justify-center gap-2"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8l4 4 6-8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          {config.buttonText}
+        </button>
+        <button
+          onClick={onSkip}
+          className="h-[36px] px-4 border border-[#c3c6d4] hover:bg-gray-50 text-[#323338] text-[14px] rounded-[8px] transition-colors"
+        >
+          Skip
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const SuccessMessage = ({ type }: { type: ResponseType }) => {
   const messages = getSuccessMessage(type);
@@ -975,6 +1065,18 @@ export const SidekickPanel = ({
     setInputValue("");
   };
 
+  // Handle action button click (user confirms action)
+  const handleAction = () => {
+    setUserMessage2("Yes, do it!");
+    setChatState("thinking_update");
+  };
+
+  // Handle skip button click (user declines action)
+  const handleSkip = () => {
+    setUserMessage2("No thanks, maybe later.");
+    setChatState("update_success");
+  };
+
   // Dynamic suggestions based on conversation state
   const getSuggestions = () => {
     if (chatState === "update_success" && conversationHistory.length > 0) {
@@ -1123,7 +1225,17 @@ export const SidekickPanel = ({
                             {responseType === "generic" && <GenericCard message={userMessage1} />}
                             <div className="flex flex-col gap-2">
                                 <p className="text-[14px] text-[#323338]">{getFollowUpMessage(responseType)}</p>
-                                <FeedbackButtons />
+                                <div className="flex items-center justify-between">
+                                    <FeedbackButtons />
+                                </div>
+                                {/* Show action buttons only in result state (before action is taken) */}
+                                {chatState === "result" && (
+                                    <ActionButtons
+                                        type={responseType}
+                                        onAction={handleAction}
+                                        onSkip={handleSkip}
+                                    />
+                                )}
                             </div>
                         </motion.div>
                     )}
