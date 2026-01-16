@@ -196,39 +196,37 @@ const AgendaCard = () => (
   <div className="bg-white relative rounded-[24px] shrink-0 w-full border border-[#c3c6d4] shadow-sm overflow-hidden">
     <div className="flex flex-col items-center">
       <div className="flex flex-col gap-[12px] items-center px-[20px] py-[16px] relative w-full text-[#323338]">
-        <p className="font-['Poppins',sans-serif] font-medium text-[18px] w-full">Event Agenda</p>
+        <p className="font-['Poppins',sans-serif] font-medium text-[18px] w-full">Elevate 2025 Event Agenda</p>
         <div className="font-['Figtree',sans-serif] text-[14px] w-full leading-[1.5]">
           <p className="mb-[12px]">
-            <span className="font-semibold">09:00 – 09:30 | Registration & Welcome Coffee<br/></span>
-            Arrival, check-in, networking
+            <span className="font-semibold">09:00 – 09:30 | Registration & Welcome<br/></span>
+            Check-in, badge pickup, networking
           </p>
           <p className="mb-[12px]">
             <span className="font-semibold">09:30 – 09:45 | Opening Remarks<br/></span>
-            Host introduction, event overview
+            Sandra Johnston, Event Lead
           </p>
           <p className="mb-[12px]">
-            <span className="font-semibold">09:45 – 10:30 | Keynote Session<br/></span>
-            Main address by guest speaker<br/>
-            Topic: [Insert Keynote Topic]
+            <span className="font-semibold">09:45 – 10:30 | Keynote: Future of Work<br/></span>
+            Transforming how teams collaborate
           </p>
           <p className="mb-[12px]">
-            <span className="font-semibold">10:30 – 11:15 | Panel Discussion<br/></span>
-            Expert panel, Q&A<br/>
-            Topic: [Insert Panel Topic]
+            <span className="font-semibold">10:30 – 11:15 | Panel: AI in the Workplace<br/></span>
+            Industry leaders share insights + Q&A
           </p>
-          <p className="font-semibold mb-[12px]">11:15 – 11:30 | Coffee Break</p>
+          <p className="font-semibold mb-[12px]">11:15 – 11:30 | Networking Break</p>
           <p className="mb-0">
             <span className="font-semibold">11:30 – 12:15 | Breakout Sessions<br/></span>
-            Parallel sessions:
+            Choose your track:
           </p>
           <ul className="list-disc ml-[21px] mb-[12px]">
-            <li>Session A: [Topic]</li>
-            <li>Session B: [Topic]</li>
-            <li>Session C: [Topic]</li>
+            <li>Track A: Productivity Masterclass</li>
+            <li>Track B: Leadership Workshop</li>
+            <li>Track C: Innovation Lab</li>
           </ul>
         </div>
       </div>
-      
+
       {/* Footer */}
       <div className="w-full flex items-center justify-center px-[16px] py-[12px]">
         <div className="flex grow items-center justify-between">
@@ -278,8 +276,8 @@ const SuccessMessage = () => (
       <IconBasicDropdownChevronDown />
     </div>
     <div className="text-[#323338] text-[14px] leading-[1.6]">
-      <p className="mb-[12px]">The detailed agenda outline has been added as an update to the "Create agenda" item. If you need any more changes, just let me know!</p>
-      <p>Would you like to review or add anything else?</p>
+      <p className="mb-[12px]">Done! I've added the agenda to the "Create agenda" task and updated its status to <strong>Working on it</strong>.</p>
+      <p>Want me to draft speaker invitations or create a timeline for the breakout sessions?</p>
     </div>
     <FeedbackButtons />
   </div>
@@ -295,13 +293,15 @@ interface MentionItem {
 }
 
 const mentionsData: MentionItem[] = [
-  { id: "1", type: "board", name: "Marketing campaign" },
-  { id: "2", type: "board", name: "Elevate event planning" },
-  { id: "3", type: "board", name: "Project requests & Approvals" },
-  { id: "4", type: "board", name: "Risk register" },
-  { id: "5", type: "doc", name: "Q1 Planning Document" },
-  { id: "6", type: "doc", name: "Event Brief" },
-  { id: "7", type: "doc", name: "Meeting Notes" },
+  { id: "1", type: "board", name: "Elevate event planning" },
+  { id: "2", type: "board", name: "Q1 Marketing campaigns" },
+  { id: "3", type: "board", name: "Product roadmap 2025" },
+  { id: "4", type: "board", name: "Sprint backlog" },
+  { id: "5", type: "board", name: "Team capacity tracker" },
+  { id: "6", type: "doc", name: "Elevate Event Brief" },
+  { id: "7", type: "doc", name: "Budget breakdown" },
+  { id: "8", type: "doc", name: "Vendor contracts" },
+  { id: "9", type: "doc", name: "Weekly standup notes" },
 ];
 
 const MentionPanel = ({
@@ -579,11 +579,11 @@ export const SidekickPanel = ({
   };
 
   const suggestions = [
-    { id: 1, text: "Draft invitation email template for Send invitions task", icon: <IconAiEditAi /> },
-    { id: 2, text: "Outline agenda structure for Create agenda item", icon: <IconPlatformWriteWithAi /> },
-    { id: 3, text: "List venue comparison criteria for Venues task", icon: <IconPlatformShuffle /> },
-    { id: 4, text: "Build catering requirements checklist for Coordinate catering", icon: <IconAiBulletsAi /> },
-    { id: 5, text: "What else can AI Sidekick help with", icon: <IconBasicAdd /> },
+    { id: 1, text: "Summarize this week's progress across all tasks", icon: <IconAiEditAi /> },
+    { id: 2, text: "Draft a stakeholder update email for this board", icon: <IconPlatformWriteWithAi /> },
+    { id: 3, text: "Identify at-risk items that may miss deadlines", icon: <IconPlatformShuffle /> },
+    { id: 4, text: "Generate a checklist for the Send invitations task", icon: <IconAiBulletsAi /> },
+    { id: 5, text: "What else can AI Sidekick help with?", icon: <IconBasicAdd /> },
   ];
 
   return (
@@ -703,7 +703,7 @@ export const SidekickPanel = ({
                             </div>
                             <AgendaCard />
                             <div className="flex flex-col gap-2">
-                                <p className="text-[14px] text-[#323338]">Would you like to customize any time slots or session topics further?</p>
+                                <p className="text-[14px] text-[#323338]">Here's a draft agenda based on the Elevate event. Want me to add this to the task, or adjust any sessions first?</p>
                                 <FeedbackButtons />
                             </div>
                         </motion.div>
