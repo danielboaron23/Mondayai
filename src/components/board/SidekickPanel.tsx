@@ -190,6 +190,225 @@ const IconVector = () => (
   </div>
 );
 
+// --- Response Types & Mock Data ---
+
+type ResponseType = "agenda" | "progress" | "email" | "risks" | "checklist" | "help" | "generic";
+
+// Function to detect response type from user input
+const detectResponseType = (input: string): ResponseType => {
+  const lowerInput = input.toLowerCase();
+
+  if (lowerInput.includes("summarize") || lowerInput.includes("progress") || lowerInput.includes("status") || lowerInput.includes("update on")) {
+    return "progress";
+  }
+  if (lowerInput.includes("email") || lowerInput.includes("draft") || lowerInput.includes("stakeholder") || lowerInput.includes("write")) {
+    return "email";
+  }
+  if (lowerInput.includes("risk") || lowerInput.includes("at-risk") || lowerInput.includes("deadline") || lowerInput.includes("delayed") || lowerInput.includes("blocked")) {
+    return "risks";
+  }
+  if (lowerInput.includes("checklist") || lowerInput.includes("list") || lowerInput.includes("steps") || lowerInput.includes("todo") || lowerInput.includes("invitation")) {
+    return "checklist";
+  }
+  if (lowerInput.includes("agenda") || lowerInput.includes("schedule") || lowerInput.includes("event") || lowerInput.includes("program")) {
+    return "agenda";
+  }
+  if (lowerInput.includes("help") || lowerInput.includes("what can") || lowerInput.includes("what else")) {
+    return "help";
+  }
+  return "generic";
+};
+
+// Follow-up messages based on response type
+const getFollowUpMessage = (type: ResponseType): string => {
+  const messages: Record<ResponseType, string> = {
+    agenda: "Here's a draft agenda based on the Elevate event. Want me to add this to the task, or adjust any sessions first?",
+    progress: "Here's your weekly summary. Want me to share this with the team or add more details?",
+    email: "Here's a draft email ready to send. Want me to adjust the tone or add more details?",
+    risks: "I found 2 items that need attention. Want me to notify the owners or suggest solutions?",
+    checklist: "Here's your checklist. Want me to add this to the task or create subtasks?",
+    help: "Here are some things I can help with. Just ask or pick one!",
+    generic: "I've analyzed your request. Would you like me to take any action on this?",
+  };
+  return messages[type];
+};
+
+// Success messages based on response type
+const getSuccessMessage = (type: ResponseType): { main: string; followUp: string } => {
+  const messages: Record<ResponseType, { main: string; followUp: string }> = {
+    agenda: {
+      main: "Done! I've added the agenda to the \"Create agenda\" task and updated its status to <strong>Working on it</strong>.",
+      followUp: "Want me to draft speaker invitations or create a timeline for the breakout sessions?"
+    },
+    progress: {
+      main: "Done! I've posted the summary as an update on this board.",
+      followUp: "Want me to schedule a weekly auto-summary or share this via email?"
+    },
+    email: {
+      main: "Done! The email draft has been saved and is ready to send.",
+      followUp: "Want me to schedule it for tomorrow morning or send it now?"
+    },
+    risks: {
+      main: "Done! I've flagged the at-risk items and notified the task owners.",
+      followUp: "Want me to suggest deadline extensions or reassign resources?"
+    },
+    checklist: {
+      main: "Done! The checklist has been added to the \"Send invitations\" task.",
+      followUp: "Want me to assign owners to each item or set due dates?"
+    },
+    help: {
+      main: "I'm here to help! Pick any suggestion or ask me anything about this board.",
+      followUp: "I can summarize, draft, analyze risks, create checklists, and more."
+    },
+    generic: {
+      main: "Done! I've completed the requested action.",
+      followUp: "Is there anything else you'd like me to help with?"
+    },
+  };
+  return messages[type];
+};
+
+// --- Response Card Components ---
+
+const ProgressCard = () => (
+  <div className="bg-white relative rounded-[24px] shrink-0 w-full border border-[#c3c6d4] shadow-sm overflow-hidden">
+    <div className="flex flex-col items-center">
+      <div className="flex flex-col gap-[12px] items-center px-[20px] py-[16px] relative w-full text-[#323338]">
+        <p className="font-['Poppins',sans-serif] font-medium text-[18px] w-full">Weekly Progress Summary</p>
+        <div className="font-['Figtree',sans-serif] text-[14px] w-full leading-[1.5]">
+          <p className="mb-[12px]">
+            <span className="font-semibold text-[#00854d]">Completed (2)</span><br/>
+            Send invitations, Venues
+          </p>
+          <p className="mb-[12px]">
+            <span className="font-semibold text-[#fdab3d]">In Progress (3)</span><br/>
+            Find guest speakers, Create agenda, Design event branding
+          </p>
+          <p className="mb-[12px]">
+            <span className="font-semibold text-[#676879]">Not Started (4)</span><br/>
+            Build registration page, Coordinate catering, Confirm tech setup, Schedule dry run
+          </p>
+          <p className="mt-[16px] pt-[12px] border-t border-[#c3c6d4]">
+            <span className="font-semibold">Overall:</span> 22% complete • On track for event date
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const EmailCard = () => (
+  <div className="bg-white relative rounded-[24px] shrink-0 w-full border border-[#c3c6d4] shadow-sm overflow-hidden">
+    <div className="flex flex-col items-center">
+      <div className="flex flex-col gap-[12px] items-center px-[20px] py-[16px] relative w-full text-[#323338]">
+        <p className="font-['Poppins',sans-serif] font-medium text-[18px] w-full">Stakeholder Update Email</p>
+        <div className="font-['Figtree',sans-serif] text-[14px] w-full leading-[1.5] bg-[#f6f7fb] rounded-[8px] p-[12px]">
+          <p className="mb-[8px]"><span className="font-semibold">Subject:</span> Elevate 2025 - Planning Update</p>
+          <p className="mb-[8px]">Hi team,</p>
+          <p className="mb-[8px]">Quick update on Elevate 2025 planning:</p>
+          <p className="mb-[4px]">• Invitations sent to 150+ attendees</p>
+          <p className="mb-[4px]">• Venue confirmed at Grand Hall</p>
+          <p className="mb-[4px]">• Agenda draft in review</p>
+          <p className="mb-[8px]">• Speaker outreach 60% complete</p>
+          <p className="mb-[8px]">Next milestone: Finalize agenda by Friday.</p>
+          <p>Best,<br/>Sandra</p>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const RisksCard = () => (
+  <div className="bg-white relative rounded-[24px] shrink-0 w-full border border-[#c3c6d4] shadow-sm overflow-hidden">
+    <div className="flex flex-col items-center">
+      <div className="flex flex-col gap-[12px] items-center px-[20px] py-[16px] relative w-full text-[#323338]">
+        <p className="font-['Poppins',sans-serif] font-medium text-[18px] w-full">At-Risk Items</p>
+        <div className="font-['Figtree',sans-serif] text-[14px] w-full leading-[1.5]">
+          <div className="bg-[#ffefef] border border-[#e44258] rounded-[8px] p-[12px] mb-[12px]">
+            <p className="font-semibold text-[#c4314b] mb-[4px]">Find guest speakers</p>
+            <p className="text-[13px] text-[#676879]">Due in 3 days • Only 2 of 5 speakers confirmed</p>
+          </div>
+          <div className="bg-[#fff8e6] border border-[#fdab3d] rounded-[8px] p-[12px]">
+            <p className="font-semibold text-[#b37700] mb-[4px]">Coordinate catering</p>
+            <p className="text-[13px] text-[#676879]">Due in 5 days • Awaiting vendor quotes</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const ChecklistCard = () => (
+  <div className="bg-white relative rounded-[24px] shrink-0 w-full border border-[#c3c6d4] shadow-sm overflow-hidden">
+    <div className="flex flex-col items-center">
+      <div className="flex flex-col gap-[12px] items-center px-[20px] py-[16px] relative w-full text-[#323338]">
+        <p className="font-['Poppins',sans-serif] font-medium text-[18px] w-full">Send Invitations Checklist</p>
+        <div className="font-['Figtree',sans-serif] text-[14px] w-full leading-[1.5]">
+          <div className="flex items-center gap-[8px] mb-[10px]">
+            <div className="w-[18px] h-[18px] rounded border-2 border-[#00854d] bg-[#00854d] flex items-center justify-center">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2"/></svg>
+            </div>
+            <span className="line-through text-[#676879]">Finalize guest list</span>
+          </div>
+          <div className="flex items-center gap-[8px] mb-[10px]">
+            <div className="w-[18px] h-[18px] rounded border-2 border-[#00854d] bg-[#00854d] flex items-center justify-center">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2"/></svg>
+            </div>
+            <span className="line-through text-[#676879]">Design invitation template</span>
+          </div>
+          <div className="flex items-center gap-[8px] mb-[10px]">
+            <div className="w-[18px] h-[18px] rounded border-2 border-[#c3c6d4]"></div>
+            <span>Set up RSVP tracking</span>
+          </div>
+          <div className="flex items-center gap-[8px] mb-[10px]">
+            <div className="w-[18px] h-[18px] rounded border-2 border-[#c3c6d4]"></div>
+            <span>Send to VIP list first</span>
+          </div>
+          <div className="flex items-center gap-[8px]">
+            <div className="w-[18px] h-[18px] rounded border-2 border-[#c3c6d4]"></div>
+            <span>Schedule reminder emails</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const HelpCard = () => (
+  <div className="bg-white relative rounded-[24px] shrink-0 w-full border border-[#c3c6d4] shadow-sm overflow-hidden">
+    <div className="flex flex-col items-center">
+      <div className="flex flex-col gap-[12px] items-center px-[20px] py-[16px] relative w-full text-[#323338]">
+        <p className="font-['Poppins',sans-serif] font-medium text-[18px] w-full">AI Sidekick Can Help With</p>
+        <div className="font-['Figtree',sans-serif] text-[14px] w-full leading-[1.5]">
+          <p className="mb-[8px]"><span className="font-semibold">Summarize</span> – Get status updates on tasks</p>
+          <p className="mb-[8px]"><span className="font-semibold">Draft</span> – Write emails, docs, and content</p>
+          <p className="mb-[8px]"><span className="font-semibold">Analyze</span> – Find risks and blockers</p>
+          <p className="mb-[8px]"><span className="font-semibold">Generate</span> – Create checklists and agendas</p>
+          <p className="mb-[0px]"><span className="font-semibold">Update</span> – Add content to tasks automatically</p>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const GenericCard = ({ message }: { message: string }) => (
+  <div className="bg-white relative rounded-[24px] shrink-0 w-full border border-[#c3c6d4] shadow-sm overflow-hidden">
+    <div className="flex flex-col items-center">
+      <div className="flex flex-col gap-[12px] items-center px-[20px] py-[16px] relative w-full text-[#323338]">
+        <div className="font-['Figtree',sans-serif] text-[14px] w-full leading-[1.5]">
+          <p>I understood your request: "{message}"</p>
+          <p className="mt-[12px]">I can help you with this! Let me know if you'd like me to:</p>
+          <ul className="list-disc ml-[21px] mt-[8px]">
+            <li>Create a task for this</li>
+            <li>Draft related content</li>
+            <li>Find relevant information</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 // --- Subcomponents for States ---
 
 const AgendaCard = () => (
@@ -268,20 +487,23 @@ const FeedbackButtons = () => (
   </div>
 );
 
-const SuccessMessage = () => (
-  <div className="flex flex-col gap-[8px] w-full">
-    <div className="flex gap-[8px] items-center">
-      <IconColoredAiColored />
-      <span className="text-[#676879] text-[14px]">Thought process</span>
-      <IconBasicDropdownChevronDown />
+const SuccessMessage = ({ type }: { type: ResponseType }) => {
+  const messages = getSuccessMessage(type);
+  return (
+    <div className="flex flex-col gap-[8px] w-full">
+      <div className="flex gap-[8px] items-center">
+        <IconColoredAiColored />
+        <span className="text-[#676879] text-[14px]">Thought process</span>
+        <IconBasicDropdownChevronDown />
+      </div>
+      <div className="text-[#323338] text-[14px] leading-[1.6]">
+        <p className="mb-[12px]" dangerouslySetInnerHTML={{ __html: messages.main }} />
+        <p>{messages.followUp}</p>
+      </div>
+      <FeedbackButtons />
     </div>
-    <div className="text-[#323338] text-[14px] leading-[1.6]">
-      <p className="mb-[12px]">Done! I've added the agenda to the "Create agenda" task and updated its status to <strong>Working on it</strong>.</p>
-      <p>Want me to draft speaker invitations or create a timeline for the breakout sessions?</p>
-    </div>
-    <FeedbackButtons />
-  </div>
-);
+  );
+};
 
 // --- Mention System ---
 
@@ -541,6 +763,7 @@ export const SidekickPanel = ({
   const [chatState, setChatState] = useState<ChatState>("idle");
   const [userMessage1, setUserMessage1] = useState("");
   const [userMessage2, setUserMessage2] = useState("");
+  const [responseType, setResponseType] = useState<ResponseType>("agenda");
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -570,6 +793,7 @@ export const SidekickPanel = ({
 
     if (chatState === "idle") {
       setUserMessage1(inputValue);
+      setResponseType(detectResponseType(inputValue));
       setChatState("thinking");
     } else if (chatState === "result") {
       setUserMessage2(inputValue);
@@ -693,7 +917,7 @@ export const SidekickPanel = ({
                         </motion.div>
                     )}
 
-                    {/* Chat State: Result (Agenda) */}
+                    {/* Chat State: Result (Dynamic based on responseType) */}
                     {(chatState === "result" || chatState === "thinking_update" || chatState === "update_success") && (
                         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4">
                             <div className="flex gap-[8px] items-center">
@@ -701,9 +925,15 @@ export const SidekickPanel = ({
                                 <span className="text-[#676879] text-[14px]">Thought process</span>
                                 <IconBasicDropdownChevronDown />
                             </div>
-                            <AgendaCard />
+                            {responseType === "agenda" && <AgendaCard />}
+                            {responseType === "progress" && <ProgressCard />}
+                            {responseType === "email" && <EmailCard />}
+                            {responseType === "risks" && <RisksCard />}
+                            {responseType === "checklist" && <ChecklistCard />}
+                            {responseType === "help" && <HelpCard />}
+                            {responseType === "generic" && <GenericCard message={userMessage1} />}
                             <div className="flex flex-col gap-2">
-                                <p className="text-[14px] text-[#323338]">Here's a draft agenda based on the Elevate event. Want me to add this to the task, or adjust any sessions first?</p>
+                                <p className="text-[14px] text-[#323338]">{getFollowUpMessage(responseType)}</p>
                                 <FeedbackButtons />
                             </div>
                         </motion.div>
@@ -733,7 +963,7 @@ export const SidekickPanel = ({
                     {/* Chat State: Success */}
                     {chatState === "update_success" && (
                         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-2">
-                            <SuccessMessage />
+                            <SuccessMessage type={responseType} />
                         </motion.div>
                     )}
                   </div>
