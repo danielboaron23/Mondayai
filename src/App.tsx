@@ -102,33 +102,31 @@ export default function App() {
     setGroup1Tasks(prevTasks => prevTasks.map(task => {
         if (task.id === '4') {
             const agendaContent = `
-<strong>Event Agenda</strong><br/>
+<strong>Elevate 2025 Event Agenda</strong><br/>
 <br/>
-<strong>09:00 – 09:30 | Registration & Welcome Coffee</strong><br/>
-Arrival, check-in, networking<br/>
+<strong>09:00 – 09:30 | Registration & Welcome</strong><br/>
+Check-in, badge pickup, networking<br/>
 <br/>
 <strong>09:30 – 09:45 | Opening Remarks</strong><br/>
-Host introduction, event overview<br/>
+Sandra Johnston, Event Lead<br/>
 <br/>
-<strong>09:45 – 10:30 | Keynote Session</strong><br/>
-Main address by guest speaker<br/>
-Topic: [Insert Keynote Topic]<br/>
+<strong>09:45 – 10:30 | Keynote: Future of Work</strong><br/>
+Transforming how teams collaborate<br/>
 <br/>
-<strong>10:30 – 11:15 | Panel Discussion</strong><br/>
-Expert panel, Q&A<br/>
-Topic: [Insert Panel Topic]<br/>
+<strong>10:30 – 11:15 | Panel: AI in the Workplace</strong><br/>
+Industry leaders share insights + Q&A<br/>
 <br/>
-<strong>11:15 – 11:30 | Coffee Break</strong><br/>
+<strong>11:15 – 11:30 | Networking Break</strong><br/>
 <br/>
 <strong>11:30 – 12:15 | Breakout Sessions</strong><br/>
-Parallel sessions:<br/>
+Choose your track:<br/>
 <ul>
-<li>Session A: [Topic]</li>
-<li>Session B: [Topic]</li>
-<li>Session C: [Topic]</li>
+<li>Track A: Productivity Masterclass</li>
+<li>Track B: Leadership Workshop</li>
+<li>Track C: Innovation Lab</li>
 </ul>
 `;
-            
+
             return {
                 ...task,
                 status: 'Working on it', // Update status
