@@ -759,7 +759,7 @@ type ChatState = "idle" | "thinking" | "result" | "thinking_update" | "update_su
 type SidekickPanelProps = {
   isOpen: boolean;
   onClose: () => void;
-  onAiAction?: () => void;
+  onAiAction?: (actionType: ResponseType) => void;
 };
 
 export const SidekickPanel = ({
@@ -786,15 +786,15 @@ export const SidekickPanel = ({
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (chatState === "thinking") {
-      timer = setTimeout(() => setChatState("result"), 2500); 
+      timer = setTimeout(() => setChatState("result"), 2500);
     } else if (chatState === "thinking_update") {
       timer = setTimeout(() => {
         setChatState("update_success");
-        onAiAction?.();
+        onAiAction?.(responseType);
       }, 1500);
     }
     return () => clearTimeout(timer);
-  }, [chatState, onAiAction]);
+  }, [chatState, onAiAction, responseType]);
 
   const handleSend = () => {
     if (!inputValue.trim()) return;
@@ -806,6 +806,12 @@ export const SidekickPanel = ({
     } else if (chatState === "result") {
       setUserMessage2(inputValue);
       setChatState("thinking_update");
+    } else if (chatState === "update_success") {
+      // Continue conversation - start new round
+      setUserMessage1(inputValue);
+      setUserMessage2("");
+      setResponseType(detectResponseType(inputValue));
+      setChatState("thinking");
     }
     setInputValue("");
   };
