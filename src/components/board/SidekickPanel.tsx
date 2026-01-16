@@ -476,8 +476,8 @@ const SidekickInput = ({ value, onChange, onSend, placeholder, isProcessing }: S
                 ref={inputRef}
                 contentEditable
                 onInput={handleInput}
-                className="w-full outline-none text-[14px] text-[#323338] bg-transparent font-['Figtree',sans-serif] leading-[20px] min-h-[60px] empty:before:content-[attr(placeholder)] empty:before:text-[#676879]"
-                placeholder={placeholder}
+                className="w-full outline-none text-[14px] text-[#323338] bg-transparent font-['Figtree',sans-serif] leading-[20px] min-h-[60px] empty:before:content-[attr(data-placeholder)] empty:before:text-[#676879]"
+                data-placeholder={placeholder}
                 style={{ whiteSpace: "pre-wrap" }}
             />
             
@@ -531,6 +531,14 @@ const SidekickInput = ({ value, onChange, onSend, placeholder, isProcessing }: S
 };
 
 // --- Main Component ---
+
+type ChatState = "idle" | "thinking" | "result" | "thinking_update" | "update_success";
+
+type SidekickPanelProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  onAiAction?: () => void;
+};
 
 export const SidekickPanel = ({
   isOpen,
