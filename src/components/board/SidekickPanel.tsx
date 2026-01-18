@@ -190,9 +190,109 @@ const IconVector = () => (
   </div>
 );
 
+const IconMicrophone = ({ isRecording = false }: { isRecording?: boolean }) => (
+  <div className="relative shrink-0 size-[16px]">
+    <svg className="block size-full" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"
+        fill={isRecording ? "#e2445c" : "#676879"}
+      />
+      <path
+        d="M19 10v1a7 7 0 0 1-14 0v-1M12 18.5v3.5M8 22h8"
+        stroke={isRecording ? "#e2445c" : "#676879"}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  </div>
+);
+
 // --- Response Types & Mock Data ---
 
 type ResponseType = "agenda" | "progress" | "email" | "risks" | "checklist" | "help" | "generic";
+
+// Action payload type for intelligent actions
+export interface AiActionPayload {
+  type: ResponseType;
+  content: string;
+  targetTaskId?: string;
+}
+
+// Chat message type for conversation history
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'ai';
+  content: string;
+  responseType?: ResponseType;
+  isSuccess?: boolean;
+}
+
+// Function to get response content based on type
+const getResponseContent = (type: ResponseType): string => {
+  switch (type) {
+    case "agenda":
+      return `<strong>Elevate 2025 Event Agenda</strong><br/><br/>
+<strong>09:00 – 09:30 | Registration & Welcome</strong><br/>
+Check-in, badge pickup, networking<br/><br/>
+<strong>09:30 – 09:45 | Opening Remarks</strong><br/>
+Sandra Johnston, Event Lead<br/><br/>
+<strong>09:45 – 10:30 | Keynote: Future of Work</strong><br/>
+Transforming how teams collaborate<br/><br/>
+<strong>10:30 – 11:15 | Panel: AI in the Workplace</strong><br/>
+Industry leaders share insights + Q&A<br/><br/>
+<strong>11:15 – 11:30 | Networking Break</strong><br/><br/>
+<strong>11:30 – 12:15 | Breakout Sessions</strong><br/>
+Choose your track:<br/>
+<ul>
+<li>Track A: Productivity Masterclass</li>
+<li>Track B: Leadership Workshop</li>
+<li>Track C: Innovation Lab</li>
+</ul>`;
+    case "progress":
+      return `<strong>Weekly Progress Summary</strong><br/><br/>
+<strong style="color:#00854d">Completed (2):</strong> Send invitations, Venues<br/><br/>
+<strong style="color:#fdab3d">In Progress (3):</strong> Find guest speakers, Create agenda, Design event branding<br/><br/>
+<strong style="color:#676879">Not Started (4):</strong> Build registration page, Coordinate catering, Confirm tech setup, Schedule dry run<br/><br/>
+<strong>Overall: 22% complete • On track</strong>`;
+    case "email":
+      return `<strong>Subject: Elevate 2025 - Planning Update</strong><br/><br/>
+Hi Team,<br/><br/>
+Quick update on Elevate 2025 planning:<br/>
+• 150+ attendees invited<br/>
+• Venue confirmed at Grand Hall<br/>
+• Agenda under final review<br/>
+• Speaker outreach 60% complete<br/><br/>
+<strong>Next step:</strong> Finalize agenda by Friday.<br/><br/>
+Best,<br/>
+Sandra`;
+    case "risks":
+      return `<strong>At-Risk Items</strong><br/><br/>
+<strong style="color:#e2445c">HIGH RISK:</strong> Find guest speakers - Due in 3 days, only 2 of 5 confirmed<br/><br/>
+<strong style="color:#fdab3d">WARNING:</strong> Coordinate catering - Due in 5 days, awaiting vendor quotes`;
+    case "checklist":
+      return `<strong>Send Invitations Checklist</strong><br/><br/>
+✓ Finalize guest list<br/>
+✓ Design invitation template<br/>
+☐ Send VIP invitations<br/>
+☐ Send general invitations<br/>
+☐ Track RSVPs`;
+    default:
+      return "";
+  }
+};
+
+// Function to get target task ID based on response type
+const getTargetTaskId = (type: ResponseType): string | undefined => {
+  switch (type) {
+    case "agenda": return "4";      // "Create agenda" task
+    case "checklist": return "1";   // "Send invitations" task
+    case "progress": return undefined;  // Board-level, not task-specific
+    case "email": return undefined;     // Copy to clipboard
+    case "risks": return undefined;     // Updates multiple tasks
+    default: return undefined;
+  }
+};
 
 // Function to detect response type from user input
 const detectResponseType = (input: string): ResponseType => {
@@ -594,6 +694,102 @@ const MentionPanel = ({
   );
 };
 
+// --- Speech to Text Hook ---
+
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
+}
+
+const useSpeechToText = () => {
+  const [isRecording, setIsRecording] = useState(false);
+  const [isSupported, setIsSupported] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const onTranscriptRef = useRef<((text: string) => void) | null>(null);
+
+  useEffect(() => {
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setIsSupported(!!SpeechRecognitionAPI);
+
+    if (SpeechRecognitionAPI) {
+      const recognition = new SpeechRecognitionAPI();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        const transcript = event.results[0][0].transcript;
+        if (onTranscriptRef.current) {
+          onTranscriptRef.current(transcript);
+        }
+      };
+
+      recognition.onerror = () => {
+        setIsRecording(false);
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
+  const startRecording = (onTranscript: (text: string) => void) => {
+    if (recognitionRef.current && !isRecording) {
+      onTranscriptRef.current = onTranscript;
+      recognitionRef.current.start();
+      setIsRecording(true);
+    }
+  };
+
+  const stopRecording = () => {
+    if (recognitionRef.current && isRecording) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const toggleRecording = (onTranscript: (text: string) => void) => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording(onTranscript);
+    }
+  };
+
+  return { isRecording, isSupported, startRecording, stopRecording, toggleRecording };
+};
+
 // --- Input Component with Mentions Support ---
 
 interface SidekickInputProps {
@@ -608,6 +804,28 @@ const SidekickInput = ({ value, onChange, onSend, placeholder, isProcessing }: S
   const [showMentions, setShowMentions] = useState(false);
   const [mentionFilter, setMentionFilter] = useState("");
   const inputRef = useRef<HTMLDivElement>(null);
+  const { isRecording, isSupported, toggleRecording } = useSpeechToText();
+
+  const handleTranscript = (transcript: string) => {
+    if (inputRef.current) {
+      const currentText = inputRef.current.innerText;
+      const newText = currentText ? `${currentText} ${transcript}` : transcript;
+      inputRef.current.innerText = newText;
+      onChange(newText);
+      inputRef.current.focus();
+      // Move cursor to end
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(inputRef.current);
+      range.collapse(false);
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    }
+  };
+
+  const handleMicrophoneClick = () => {
+    toggleRecording(handleTranscript);
+  };
 
   // Sync prop value to div content (one-way for simplicity in this proto)
   useEffect(() => {
@@ -708,12 +926,32 @@ const SidekickInput = ({ value, onChange, onSend, placeholder, isProcessing }: S
                     <div className="flex items-center justify-center size-[24px] cursor-pointer hover:bg-gray-100 rounded">
                         <IconBasicAdd />
                     </div>
-                    <div 
+                    <div
                         className="flex items-center justify-center size-[24px] cursor-pointer hover:bg-[rgba(103,104,121,0.1)] rounded transition-colors"
                         onClick={handleManualMention}
                     >
                         <IconVector />
                     </div>
+                    {isSupported && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div
+                                    className={clsx(
+                                        "flex items-center justify-center size-[24px] cursor-pointer rounded transition-all",
+                                        isRecording
+                                            ? "bg-[#ffefef] animate-pulse"
+                                            : "hover:bg-[rgba(103,104,121,0.1)]"
+                                    )}
+                                    onClick={handleMicrophoneClick}
+                                >
+                                    <IconMicrophone isRecording={isRecording} />
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{isRecording ? "Stop recording" : "Speech to text"}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    )}
                 </div>
                 <Tooltip>
                     <TooltipTrigger asChild>
@@ -759,7 +997,7 @@ type ChatState = "idle" | "thinking" | "result" | "thinking_update" | "update_su
 type SidekickPanelProps = {
   isOpen: boolean;
   onClose: () => void;
-  onAiAction?: () => void;
+  onAiAction?: (payload: AiActionPayload) => void;
 };
 
 export const SidekickPanel = ({
@@ -769,43 +1007,84 @@ export const SidekickPanel = ({
 }: SidekickPanelProps) => {
   const [inputValue, setInputValue] = useState("");
   const [chatState, setChatState] = useState<ChatState>("idle");
-  const [userMessage1, setUserMessage1] = useState("");
-  const [userMessage2, setUserMessage2] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [responseType, setResponseType] = useState<ResponseType>("agenda");
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll
+  // Auto-scroll when messages change or state changes
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [chatState, userMessage1, userMessage2]);
+  }, [chatState, messages]);
 
-  // Transitions
+  // Transitions - add AI messages to history
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (chatState === "thinking") {
-      timer = setTimeout(() => setChatState("result"), 2500); 
+      timer = setTimeout(() => {
+        // Add AI response to history
+        const aiMessage: ChatMessage = {
+          id: Math.random().toString(36).substr(2, 9),
+          role: 'ai',
+          content: getFollowUpMessage(responseType),
+          responseType: responseType
+        };
+        setMessages(prev => [...prev, aiMessage]);
+        setChatState("result");
+      }, 2500);
     } else if (chatState === "thinking_update") {
       timer = setTimeout(() => {
+        // Add success message to history
+        const successMessage: ChatMessage = {
+          id: Math.random().toString(36).substr(2, 9),
+          role: 'ai',
+          content: getSuccessMessage(responseType).main,
+          responseType: responseType,
+          isSuccess: true
+        };
+        setMessages(prev => [...prev, successMessage]);
         setChatState("update_success");
-        onAiAction?.();
+
+        // Pass intelligent payload with type, content, and target task
+        onAiAction?.({
+          type: responseType,
+          content: getResponseContent(responseType),
+          targetTaskId: getTargetTaskId(responseType)
+        });
       }, 1500);
     }
     return () => clearTimeout(timer);
-  }, [chatState, onAiAction]);
+  }, [chatState, onAiAction, responseType]);
 
   const handleSend = () => {
     if (!inputValue.trim()) return;
 
-    if (chatState === "idle") {
-      setUserMessage1(inputValue);
+    const input = inputValue.toLowerCase().trim();
+    const isConfirmation = ['yes', 'yeah', 'yep', 'sure', 'ok', 'okay', 'do it', 'go ahead', 'please', 'add it', 'add'].some(
+      word => input === word || input.startsWith(word + ' ') || input.endsWith(' ' + word)
+    );
+
+    if (chatState === "result" && isConfirmation) {
+      // User is confirming the action
+      const confirmMessage: ChatMessage = {
+        id: Math.random().toString(36).substr(2, 9),
+        role: 'user',
+        content: inputValue
+      };
+      setMessages(prev => [...prev, confirmMessage]);
+      setChatState("thinking_update");
+    } else if (chatState === "idle" || chatState === "result" || chatState === "update_success") {
+      // New question - start fresh thinking
+      const newMessage: ChatMessage = {
+        id: Math.random().toString(36).substr(2, 9),
+        role: 'user',
+        content: inputValue
+      };
+      setMessages(prev => [...prev, newMessage]);
       setResponseType(detectResponseType(inputValue));
       setChatState("thinking");
-    } else if (chatState === "result") {
-      setUserMessage2(inputValue);
-      setChatState("thinking_update");
     }
     setInputValue("");
   };
@@ -906,73 +1185,61 @@ export const SidekickPanel = ({
                   </>
                 ) : (
                   <div className="flex flex-col gap-6 pb-4">
-                    {/* User Message 1 */}
-                    <div className="flex flex-col items-end w-full pl-6">
-                        <div className="flex flex-col items-end gap-1">
-                            <div className="size-8 rounded-full overflow-hidden mb-1 flex-shrink-0">
-                                <img src={imgAvatar} alt="User" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="bg-[#edf1fc] px-4 py-2.5 rounded-tl-xl rounded-tr-sm rounded-bl-xl rounded-br-xl text-[14px] text-[#323338] leading-[1.5]">
-                                {userMessage1}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Chat State: Thinking 1 */}
-                    {chatState === "thinking" && (
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                            <ThinkingIndicator />
-                        </motion.div>
-                    )}
-
-                    {/* Chat State: Result (Dynamic based on responseType) */}
-                    {(chatState === "result" || chatState === "thinking_update" || chatState === "update_success") && (
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4">
-                            <div className="flex gap-[8px] items-center">
-                                <IconColoredAiColored />
-                                <span className="text-[#676879] text-[14px]">Thought process</span>
-                                <IconBasicDropdownChevronDown />
-                            </div>
-                            {responseType === "agenda" && <AgendaCard />}
-                            {responseType === "progress" && <ProgressCard />}
-                            {responseType === "email" && <EmailCard />}
-                            {responseType === "risks" && <RisksCard />}
-                            {responseType === "checklist" && <ChecklistCard />}
-                            {responseType === "help" && <HelpCard />}
-                            {responseType === "generic" && <GenericCard message={userMessage1} />}
-                            <div className="flex flex-col gap-2">
-                                <p className="text-[14px] text-[#323338]">{getFollowUpMessage(responseType)}</p>
-                                <FeedbackButtons />
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* User Message 2 */}
-                    {(userMessage2) && (
-                        <div className="flex flex-col items-end w-full pl-6 mt-4">
+                    {/* Render all messages from history */}
+                    {messages.map((msg, index) => (
+                      <React.Fragment key={msg.id}>
+                        {msg.role === 'user' ? (
+                          // User message bubble (right-aligned)
+                          <div className="flex flex-col items-end w-full pl-6">
                             <div className="flex flex-col items-end gap-1">
-                                <div className="size-8 rounded-full overflow-hidden mb-1 flex-shrink-0">
-                                    <img src={imgAvatar} alt="User" className="w-full h-full object-cover" />
-                                </div>
-                                <div className="bg-[#edf1fc] px-4 py-2.5 rounded-tl-xl rounded-tr-sm rounded-bl-xl rounded-br-xl text-[14px] text-[#323338] leading-[1.5]">
-                                    {userMessage2}
-                                </div>
+                              <div className="size-8 rounded-full overflow-hidden mb-1 flex-shrink-0">
+                                <img src={imgAvatar} alt="User" className="w-full h-full object-cover" />
+                              </div>
+                              <div className="bg-[#edf1fc] px-4 py-2.5 rounded-tl-xl rounded-tr-sm rounded-bl-xl rounded-br-xl text-[14px] text-[#323338] leading-[1.5]">
+                                {msg.content}
+                              </div>
                             </div>
-                        </div>
-                    )}
+                          </div>
+                        ) : (
+                          // AI message (left-aligned with card if has responseType)
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex flex-col gap-4"
+                          >
+                            {msg.responseType && !msg.isSuccess && (
+                              <>
+                                <div className="flex gap-[8px] items-center">
+                                  <IconColoredAiColored />
+                                  <span className="text-[#676879] text-[14px]">Thought process</span>
+                                  <IconBasicDropdownChevronDown />
+                                </div>
+                                {msg.responseType === "agenda" && <AgendaCard />}
+                                {msg.responseType === "progress" && <ProgressCard />}
+                                {msg.responseType === "email" && <EmailCard />}
+                                {msg.responseType === "risks" && <RisksCard />}
+                                {msg.responseType === "checklist" && <ChecklistCard />}
+                                {msg.responseType === "help" && <HelpCard />}
+                                {msg.responseType === "generic" && <GenericCard message={messages[index - 1]?.content || ""} />}
+                                <div className="flex flex-col gap-2">
+                                  <p className="text-[14px] text-[#323338]">{msg.content}</p>
+                                  <FeedbackButtons />
+                                </div>
+                              </>
+                            )}
+                            {msg.isSuccess && (
+                              <SuccessMessage type={msg.responseType!} />
+                            )}
+                          </motion.div>
+                        )}
+                      </React.Fragment>
+                    ))}
 
-                    {/* Chat State: Thinking Update */}
-                    {chatState === "thinking_update" && (
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-2">
-                            <ThinkingIndicator />
-                        </motion.div>
-                    )}
-
-                    {/* Chat State: Success */}
-                    {chatState === "update_success" && (
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-2">
-                            <SuccessMessage type={responseType} />
-                        </motion.div>
+                    {/* Show thinking indicator when processing */}
+                    {(chatState === "thinking" || chatState === "thinking_update") && (
+                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                        <ThinkingIndicator />
+                      </motion.div>
                     )}
                   </div>
                 )}

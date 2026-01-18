@@ -3,7 +3,7 @@ import { TopBar } from './components/layout/TopBar';
 import { Sidebar } from './components/layout/Sidebar';
 import { BoardHeader } from './components/board/BoardHeader';
 import { TaskBoard } from './components/board/TaskBoard';
-import { SidekickPanel } from './components/board/SidekickPanel';
+import { SidekickPanel, AiActionPayload } from './components/board/SidekickPanel';
 import { UpdatesPane } from './components/board/UpdatesPane';
 import { Task } from './components/board/TaskGroup';
 
@@ -97,53 +97,92 @@ export default function App() {
     }
   ]);
 
-  const handleAiAction = () => {
-    // Update "Create agenda" task (id: 4)
-    setGroup1Tasks(prevTasks => prevTasks.map(task => {
-        if (task.id === '4') {
-            const agendaContent = `
-<strong>Elevate 2025 Event Agenda</strong><br/>
-<br/>
-<strong>09:00 – 09:30 | Registration & Welcome</strong><br/>
-Check-in, badge pickup, networking<br/>
-<br/>
-<strong>09:30 – 09:45 | Opening Remarks</strong><br/>
-Sandra Johnston, Event Lead<br/>
-<br/>
-<strong>09:45 – 10:30 | Keynote: Future of Work</strong><br/>
-Transforming how teams collaborate<br/>
-<br/>
-<strong>10:30 – 11:15 | Panel: AI in the Workplace</strong><br/>
-Industry leaders share insights + Q&A<br/>
-<br/>
-<strong>11:15 – 11:30 | Networking Break</strong><br/>
-<br/>
-<strong>11:30 – 12:15 | Breakout Sessions</strong><br/>
-Choose your track:<br/>
-<ul>
-<li>Track A: Productivity Masterclass</li>
-<li>Track B: Leadership Workshop</li>
-<li>Track C: Innovation Lab</li>
-</ul>
-`;
+  const handleAiAction = (payload: AiActionPayload) => {
+    const { type, content } = payload;
 
-            return {
-                ...task,
-                status: 'Working on it', // Update status
-                description: 'Agenda draft added by AI Sidekick', // Update description to reflect action
-                updates: [
-                    ...(task.updates || []),
-                    {
-                        id: Math.random().toString(36).substr(2, 9),
-                        content: agendaContent,
-                        author: 'AI Sidekick',
-                        timestamp: 'Just now'
-                    }
-                ]
-            };
+    switch (type) {
+      case "agenda":
+        // Add agenda to "Create agenda" task (id: 4)
+        setGroup1Tasks(prev => prev.map(task =>
+          task.id === "4" ? {
+            ...task,
+            status: "Working on it",
+            description: "Agenda draft added by AI Sidekick",
+            updates: [...(task.updates || []), {
+              id: Math.random().toString(36).substr(2, 9),
+              content,
+              author: "AI Sidekick",
+              timestamp: "Just now"
+            }]
+          } : task
+        ));
+        break;
+
+      case "progress":
+        // Add progress summary to first task as board update
+        setGroup1Tasks(prev => prev.map((task, i) =>
+          i === 0 ? {
+            ...task,
+            updates: [...(task.updates || []), {
+              id: Math.random().toString(36).substr(2, 9),
+              content: `<strong>Board Progress Update</strong><br/><br/>${content}`,
+              author: "AI Sidekick",
+              timestamp: "Just now"
+            }]
+          } : task
+        ));
+        break;
+
+      case "email":
+        // Copy email to clipboard
+        navigator.clipboard.writeText(content.replace(/<[^>]*>/g, '').replace(/<br\/?>/g, '\n'));
+        break;
+
+      case "risks":
+        // Update at-risk tasks with Critical priority
+        setGroup1Tasks(prev => prev.map(task =>
+          task.id === "3" ? { ...task, priority: "Critical" } : task
+        ));
+        setGroup2Tasks(prev => prev.map(task =>
+          task.id === "7" ? { ...task, priority: "Critical" } : task
+        ));
+        break;
+
+      case "checklist":
+        // Add checklist to "Send invitations" task (id: 1)
+        setGroup1Tasks(prev => prev.map(task =>
+          task.id === "1" ? {
+            ...task,
+            updates: [...(task.updates || []), {
+              id: Math.random().toString(36).substr(2, 9),
+              content,
+              author: "AI Sidekick",
+              timestamp: "Just now"
+            }]
+          } : task
+        ));
+        break;
+
+      case "help":
+        // No action needed for help - it's informational only
+        break;
+
+      default:
+        // Generic fallback - add content to first task if available
+        if (content) {
+          setGroup1Tasks(prev => prev.map((task, i) =>
+            i === 0 ? {
+              ...task,
+              updates: [...(task.updates || []), {
+                id: Math.random().toString(36).substr(2, 9),
+                content,
+                author: "AI Sidekick",
+                timestamp: "Just now"
+              }]
+            } : task
+          ));
         }
-        return task;
-    }));
+    }
   };
 
   const handleAddTask = (groupTitle: string, taskName: string) => {
@@ -175,9 +214,9 @@ Choose your track:<br/>
         <div className="flex flex-col flex-1 min-w-0 bg-white rounded-tl-[16px] relative overflow-hidden shadow-sm">
           <div className="flex flex-col flex-1 overflow-y-auto p-[20px]">
             <BoardHeader onAiSidekickClick={() => setIsSidekickOpen(true)} />
-            <TaskBoard 
-              group1Tasks={group1Tasks} 
-              group2Tasks={group2Tasks} 
+            <TaskBoard
+              group1Tasks={group1Tasks}
+              group2Tasks={group2Tasks}
               onAddTask={handleAddTask}
               onOpenUpdates={handleOpenUpdates}
             />
