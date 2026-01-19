@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { X, ChevronDown, Plus, ArrowUp } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { clsx } from "clsx";
 import { motion, AnimatePresence } from "motion/react";
 
-// Assets from Figma Import
-import imgGradient from "figma:asset/90f8cf54832502c4e962befcc7c9e121547fed3b.png";
-import imgStar from "figma:asset/d19fbde6c069c5c82573e290ed8844e5504d6365.png";
-import imgAvatar from "figma:asset/f8631c20e9a10e0f2edcf3d87371628aa5cf9678.png";
+// Assets from Figma Export
+// Using a normal relative import here keeps TypeScript tooling happy (no virtual module needed).
+import imgGradient from "../../assets/90f8cf54832502c4e962befcc7c9e121547fed3b.png";
+import imgStar from "../../assets/d19fbde6c069c5c82573e290ed8844e5504d6365.png";
+import imgAvatar from "../../assets/f8631c20e9a10e0f2edcf3d87371628aa5cf9678.png";
 
 // SVG Paths
 const svgPaths = {
@@ -37,6 +38,10 @@ const svgPaths = {
   p52f1780: "M3.53846 3.70776C3.19674 3.70776 2.86901 3.84351 2.62738 4.08515C2.38575 4.32678 2.25 4.6545 2.25 4.99623C2.25 5.33795 2.38575 5.66567 2.62738 5.9073C2.86901 6.14894 3.19674 6.28469 3.53846 6.28469C3.88018 6.28469 4.20791 6.14894 4.44954 5.9073C4.69117 5.66567 4.82692 5.33795 4.82692 4.99623C4.82692 4.6545 4.69117 4.32678 4.44954 4.08515C4.20791 3.84351 3.88018 3.70776 3.53846 3.70776Z",
   p5ae0100: "M9.44176 12.7603C9.75007 13.0798 10.2499 13.0798 10.5582 12.7603L14.7688 8.39668C15.0771 8.07716 15.0771 7.55912 14.7688 7.2396C14.4605 6.92008 13.9606 6.92008 13.6523 7.2396L10 11.0247L6.34772 7.2396C6.03941 6.92008 5.53954 6.92008 5.23123 7.2396C4.92292 7.55912 4.92292 8.07716 5.23123 8.39668L9.44176 12.7603Z",
   p23f1de00: "M10.75 7.75241V8.74999C10.75 9.85456 11.6454 10.75 12.75 10.75C13.8546 10.75 14.75 9.85456 14.75 8.74999V7.74999C14.75 6.25215 14.2697 4.79388 13.3794 3.58935C12.4891 2.38482 11.2356 1.49757 9.80371 1.0581C8.37179 0.618625 6.83657 0.65001 5.42383 1.14771C4.01109 1.64542 2.79534 2.58359 1.95508 3.82355C1.11482 5.06351 0.69457 6.53987 0.755868 8.03646C0.817166 9.53305 1.35688 10.9707 2.29573 12.1378C3.23459 13.3049 4.52336 14.1399 5.97207 14.5204C7.42077 14.9009 8.95272 14.8066 10.3439 14.2515M10.75 7.75241C10.7487 9.40815 9.40605 10.75 7.75 10.75C6.09315 10.75 4.75 9.40685 4.75 7.74999C4.75 6.09314 6.09315 4.74999 7.75 4.74999C9.40605 4.74999 10.7487 6.09183 10.75 7.74757M10.75 7.75241V7.74757M10.75 7.74757V4.74999",
+  // Added to fix missing paths used by IconDoc (source: src/imports/svg-wc6ymhm8u9.ts)
+  p3ed71e00: "M16.1557 7.61667C16.1557 7.63699 16.1549 7.65713 16.1533 7.67705V16.3767C16.1533 16.8337 15.9718 17.2721 15.6486 17.5952C15.3254 17.9184 14.8871 18.1 14.43 18.1H4.72333C4.26627 18.1 3.82794 17.9184 3.50475 17.5952C3.18157 17.2721 3 16.8337 3 16.3767V3.72333C3 3.26628 3.18157 2.82794 3.50475 2.50475C3.82794 2.18157 4.26628 2 4.72333 2H10.6204C11.0771 2.0001 11.5153 2.1815 11.8384 2.50436L15.6488 6.31481C15.9717 6.63787 16.1532 7.07606 16.1533 7.5328V7.55628C16.1549 7.5762 16.1557 7.59634 16.1557 7.61667ZM4.72333 3.5C4.6641 3.5 4.6073 3.52353 4.56541 3.56541C4.52353 3.6073 4.5 3.6641 4.5 3.72333V16.3767C4.5 16.4359 4.52353 16.4927 4.56541 16.5346C4.6073 16.5765 4.6641 16.6 4.72333 16.6H14.43C14.4892 16.6 14.546 16.5765 14.5879 16.5346C14.6298 16.4927 14.6533 16.4359 14.6533 16.3767V8.36667H11.5124C11.0553 8.36667 10.617 8.1851 10.2938 7.86191C9.97063 7.53873 9.78906 7.10039 9.78906 6.64333V3.55469L4.72333 3.5ZM14.0793 6.86667L11.2891 4.07639V6.64333C11.2891 6.70256 11.3126 6.75937 11.3545 6.80125C11.3964 6.84314 11.4532 6.86667 11.5124 6.86667H14.0793Z",
+  p3ff5b100: "M6.41895 9.8999C6.00473 9.8999 5.66895 10.2357 5.66895 10.6499C5.66895 11.0641 6.00473 11.3999 6.41895 11.3999H12.4409C12.8551 11.3999 13.1909 11.0641 13.1909 10.6499C13.1909 10.2357 12.8551 9.8999 12.4409 9.8999H6.41895Z",
+  p735ab80: "M6.41914 13.0999C6.00492 13.0999 5.66914 13.4357 5.66914 13.8499C5.66914 14.2641 6.00492 14.5999 6.41914 14.5999H10.2824C10.6966 14.5999 11.0324 14.2641 11.0324 13.8499C11.0324 13.4357 10.6966 13.0999 10.2824 13.0999H6.41914Z",
 };
 
 // Component Definitions for Icons
@@ -629,10 +634,14 @@ const mentionsData: MentionItem[] = [
 const MentionPanel = ({
   filter,
   onSelect,
+  placement = "below",
 }: {
   filter: string;
   onSelect: (item: MentionItem) => void;
+  placement?: "above" | "below";
 }) => {
+  const panelRef = useRef<HTMLDivElement>(null);
+
   const filtered = mentionsData.filter((m) =>
     m.name.toLowerCase().includes(filter.toLowerCase())
   );
@@ -640,9 +649,30 @@ const MentionPanel = ({
   const boards = filtered.filter((m) => m.type === "board");
   const docs = filtered.filter((m) => m.type === "doc");
 
+  // For "above" placement, dynamically position the panel so its bottom aligns
+  // to the top of the input (with a small gap). This avoids hardcoding pixel offsets.
+  useLayoutEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+
+    if (placement === "above") {
+      const gapPx = 4; // small visual gap between input and dropdown
+      const height = el.offsetHeight;
+      el.style.top = `-${height + gapPx}px`;
+    } else {
+      el.style.top = "";
+    }
+  }, [placement, filter, boards.length, docs.length]);
+
   if (filtered.length === 0) {
     return (
-    <div className="absolute top-full mt-2 left-0 w-full bg-white border border-[#c3c6d4] shadow-[0_4px_16px_rgba(0,0,0,0.2)] rounded-[8px] p-6 flex flex-col items-center justify-center z-50">
+    <div
+      ref={panelRef}
+      className={clsx(
+        "absolute left-0 w-full bg-white border border-[#c3c6d4] shadow-[0_4px_16px_rgba(0,0,0,0.2)] rounded-[8px] p-6 flex flex-col items-center justify-center z-[100]",
+        placement === "above" ? "top-0" : "top-full mt-2"
+      )}
+    >
         <IconSearch />
         <span className="mt-2 text-[#676879] text-[14px] font-['Figtree',sans-serif]">
           No matching results
@@ -673,7 +703,13 @@ const MentionPanel = ({
   );
 
   return (
-    <div className="absolute top-full mt-2 left-0 w-full bg-white border border-[#c3c6d4] shadow-[0_4px_16px_rgba(0,0,0,0.2)] rounded-[8px] py-2 flex flex-col z-50 max-h-[250px] overflow-y-auto">
+    <div
+      ref={panelRef}
+      className={clsx(
+        "absolute left-0 w-full bg-white border border-[#c3c6d4] shadow-[0_4px_16px_rgba(0,0,0,0.2)] rounded-[8px] py-2 flex flex-col z-[100] max-h-[250px] overflow-y-auto",
+        placement === "above" ? "top-0" : "top-full mt-2"
+      )}
+    >
       {boards.length > 0 && (
         <>
           <div className="px-3 py-1 text-[12px] font-semibold text-[#676879] font-['Figtree',sans-serif]">
@@ -798,9 +834,17 @@ interface SidekickInputProps {
   onSend: () => void;
   placeholder?: string;
   isProcessing?: boolean;
+  mentionPanelPlacement?: "above" | "below";
 }
 
-const SidekickInput = ({ value, onChange, onSend, placeholder, isProcessing }: SidekickInputProps) => {
+const SidekickInput = ({
+  value,
+  onChange,
+  onSend,
+  placeholder,
+  isProcessing,
+  mentionPanelPlacement = "below",
+}: SidekickInputProps) => {
   const [showMentions, setShowMentions] = useState(false);
   const [mentionFilter, setMentionFilter] = useState("");
   const inputRef = useRef<HTMLDivElement>(null);
@@ -907,84 +951,98 @@ const SidekickInput = ({ value, onChange, onSend, placeholder, isProcessing }: S
 
   return (
     <div className="bg-white relative rounded-[12px] shrink-0 w-full border border-[#c3c6d4] shadow-sm">
-        <div className="flex flex-col gap-[16px] px-[12px] py-[8px] relative">
-            {showMentions && (
-                <MentionPanel filter={mentionFilter} onSelect={insertMention} />
-            )}
-            
-            <div 
-                ref={inputRef}
-                contentEditable
-                onInput={handleInput}
-                className="w-full outline-none text-[14px] text-[#323338] bg-transparent font-['Figtree',sans-serif] leading-[20px] min-h-[60px] empty:before:content-[attr(data-placeholder)] empty:before:text-[#676879]"
-                data-placeholder={placeholder}
-                style={{ whiteSpace: "pre-wrap" }}
-            />
-            
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <div className="flex items-center justify-center size-[24px] cursor-pointer hover:bg-gray-100 rounded">
-                        <IconBasicAdd />
-                    </div>
-                    <div
-                        className="flex items-center justify-center size-[24px] cursor-pointer hover:bg-[rgba(103,104,121,0.1)] rounded transition-colors"
-                        onClick={handleManualMention}
-                    >
-                        <IconVector />
-                    </div>
-                    {isSupported && (
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div
-                                    className={clsx(
-                                        "flex items-center justify-center size-[24px] cursor-pointer rounded transition-all",
-                                        isRecording
-                                            ? "bg-[#ffefef] animate-pulse"
-                                            : "hover:bg-[rgba(103,104,121,0.1)]"
-                                    )}
-                                    onClick={handleMicrophoneClick}
-                                >
-                                    <IconMicrophone isRecording={isRecording} />
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{isRecording ? "Stop recording" : "Speech to text"}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    )}
-                </div>
+        {showMentions && (
+          <MentionPanel
+            filter={mentionFilter}
+            onSelect={insertMention}
+            placement={mentionPanelPlacement}
+          />
+        )}
+
+        <div className="flex flex-col gap-[16px] px-[12px] py-[8px]">
+          <div
+            ref={inputRef}
+            contentEditable
+            onInput={handleInput}
+            className="w-full outline-none text-[14px] text-[#323338] bg-transparent font-['Figtree',sans-serif] leading-[20px] min-h-[60px] empty:before:content-[attr(data-placeholder)] empty:before:text-[#676879]"
+            data-placeholder={placeholder}
+            style={{ whiteSpace: "pre-wrap" }}
+          />
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center size-[24px] cursor-pointer hover:bg-gray-100 rounded">
+                <IconBasicAdd />
+              </div>
+              <div
+                className="flex items-center justify-center size-[24px] cursor-pointer hover:bg-[rgba(103,104,121,0.1)] rounded transition-colors"
+                onClick={handleManualMention}
+              >
+                <IconVector />
+              </div>
+              {isSupported && (
                 <Tooltip>
-                    <TooltipTrigger asChild>
-                        <div 
-                            className={clsx(
-                                "flex items-center justify-center size-[24px] rounded-[12px] cursor-pointer transition-colors", 
-                                isProcessing ? "bg-[#323338]" : (value.length > 0 ? "bg-[#0073ea]" : "bg-[#ecedf5]")
-                            )}
-                            onClick={onSend}
-                        >
-                            {isProcessing ? (
-                                <IconPlatformStopAi />
-                            ) : (
-                                <div className="relative shrink-0 size-[16px]">
-                                    <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
-                                        <g clipPath="url(#clip_arrow_up)">
-                                            <path clipRule="evenodd" d={svgPaths.p1a3c500} fill={value.length > 0 ? "white" : "#323338"} fillOpacity={value.length > 0 ? "1" : "0.38"} fillRule="evenodd"/>
-                                        </g>
-                                        <defs>
-                                            <clipPath id="clip_arrow_up">
-                                                <rect fill="white" height="16" width="16" />
-                                            </clipPath>
-                                        </defs>
-                                    </svg>
-                                </div>
-                            )}
-                        </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Send message</p>
-                    </TooltipContent>
+                  <TooltipTrigger asChild>
+                    <div
+                      className={clsx(
+                        "flex items-center justify-center size-[24px] cursor-pointer rounded transition-all",
+                        isRecording
+                          ? "bg-[#ffefef] animate-pulse"
+                          : "hover:bg-[rgba(103,104,121,0.1)]"
+                      )}
+                      onClick={handleMicrophoneClick}
+                    >
+                      <IconMicrophone isRecording={isRecording} />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{isRecording ? "Stop recording" : "Speech to text"}</p>
+                  </TooltipContent>
                 </Tooltip>
+              )}
             </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  className={clsx(
+                    "flex items-center justify-center size-[24px] rounded-[12px] cursor-pointer transition-colors",
+                    isProcessing
+                      ? "bg-[#323338]"
+                      : value.length > 0
+                        ? "bg-[#0073ea]"
+                        : "bg-[#ecedf5]"
+                  )}
+                  onClick={onSend}
+                >
+                  {isProcessing ? (
+                    <IconPlatformStopAi />
+                  ) : (
+                    <div className="relative shrink-0 size-[16px]">
+                      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
+                        <g clipPath="url(#clip_arrow_up)">
+                          <path
+                            clipRule="evenodd"
+                            d={svgPaths.p1a3c500}
+                            fill={value.length > 0 ? "white" : "#323338"}
+                            fillOpacity={value.length > 0 ? "1" : "0.38"}
+                            fillRule="evenodd"
+                          />
+                        </g>
+                        <defs>
+                          <clipPath id="clip_arrow_up">
+                            <rect fill="white" height="16" width="16" />
+                          </clipPath>
+                        </defs>
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Send message</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
     </div>
   );
@@ -1021,7 +1079,7 @@ export const SidekickPanel = ({
 
   // Transitions - add AI messages to history
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     if (chatState === "thinking") {
       timer = setTimeout(() => {
         // Add AI response to history
@@ -1055,7 +1113,9 @@ export const SidekickPanel = ({
         });
       }, 1500);
     }
-    return () => clearTimeout(timer);
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [chatState, onAiAction, responseType]);
 
   const handleSend = () => {
@@ -1254,6 +1314,7 @@ export const SidekickPanel = ({
                         onSend={handleSend}
                         placeholder="Message Sidekick..."
                         isProcessing={chatState === "thinking" || chatState === "thinking_update"}
+                        mentionPanelPlacement="above"
                     />
                     <div className="flex justify-center">
                         <p className="text-[12px] text-[#676879]">AI may be inaccurate, make sure to review it. <span className="text-[#1f76c2] cursor-pointer">Learn more</span></p>
